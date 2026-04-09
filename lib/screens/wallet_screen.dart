@@ -169,6 +169,45 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
+  Future<void> _confirmAndDeleteWallet() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Wallet?'),
+          content: const Text(
+            'This will remove the locally stored wallet from this device. Make sure you have backed up your WIF or private key before continuing.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete Wallet'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    await _store.clearWallet();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const Scaffold(
+          body: Center(child: Text('Restart app to return to home.')),
+        ),
+      ),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -180,14 +219,7 @@ class _WalletScreenState extends State<WalletScreen> {
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
-            onPressed: () async {
-              await _store.clearWallet();
-              if (!mounted) return;
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text('Restart app to return to home.')))),
-                (route) => false,
-              );
-            },
+            onPressed: _confirmAndDeleteWallet,
             icon: const Icon(Icons.delete_outline),
           ),
         ],
