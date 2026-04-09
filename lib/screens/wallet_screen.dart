@@ -1,0 +1,292 @@
+// =========================
+// lib/screens/wallet_screen.dart
+// =========================
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
+import '../models/wallet_info.dart';
+import '../services/api_service.dart';
+import '../services/secure_wallet_store.dart';
+import 'history_screen.dart';
+import 'send_screen.dart';
+
+class WalletScreen extends StatefulWidget {
+  final WalletInfo wallet;
+
+  const WalletScreen({super.key, required this.wallet});
+
+  @override
+  State<WalletScreen> createState() => _WalletScreenState();
+}
+
+class _WalletScreenState extends State<WalletScreen> {
+  final _api = const ApiService();
+  final _store = SecureWalletStore();
+
+  bool _loading = true;
+  String? _error;
+  double _balance = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final balance = await _api.getBalance(widget.wallet.address);
+      if (!mounted) return;
+      setState(() {
+        _balance = balance;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _copyAddress() async {
+    await Clipboard.setData(ClipboardData(text: widget.wallet.address));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Address copied to clipboard.')),
+    );
+  }
+
+  Future<void> _copyText(String label, String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label copied to clipboard.')),
+    );
+  }
+
+  Future<void> _showExportKeysDialog() async {
+    var showSensitive = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Widget buildSecretField({
+              required String label,
+              required String value,
+            }) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _copyText(label, value),
+                        tooltip: 'Copy $label',
+                        icon: const Icon(Icons.copy, size: 20),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: showSensitive
+                        ? SelectableText(value)
+                        : const Text('••••••••••••••••••••••••••••••••'),
+                  ),
+                ],
+              );
+            }
+
+            return AlertDialog(
+              title: const Text('Export Keys'),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Keep these values secret. Anyone with your WIF or private key can spend your coins.',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Show sensitive data'),
+                      subtitle: const Text('Hidden by default for safety.'),
+                      value: showSensitive,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          showSensitive = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    buildSecretField(label: 'WIF', value: widget.wallet.wif),
+                    const SizedBox(height: 12),
+                    buildSecretField(
+                      label: 'Private key (hex)',
+                      value: widget.wallet.privateKeyHex,
+                    ),
+                    const SizedBox(height: 12),
+                    buildSecretField(
+                      label: 'Compressed public key',
+                      value: widget.wallet.publicKeyHex,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('996-Coin Light Wallet'),
+        actions: [
+          IconButton(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+          ),
+          IconButton(
+            onPressed: () async {
+              await _store.clearWallet();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const Scaffold(body: Center(child: Text('Restart app to return to home.')))),
+                (route) => false,
+              );
+            },
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('Address', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: _copyAddress,
+                          tooltip: 'Copy address',
+                          icon: const Icon(Icons.copy, size: 20),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(widget.wallet.address),
+                    const SizedBox(height: 16),
+                    if (_loading)
+                      const CircularProgressIndicator()
+                    else
+                      Text(
+                        'Balance: $_balance NNS',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 8),
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => SendScreen(wallet: widget.wallet),
+                            ),
+                          );
+                        },
+                        child: const Text('Send'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Text('Receive', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    QrImageView(
+                      data: widget.wallet.address,
+                      backgroundColor: Colors.white,
+                      size: 220,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _copyAddress,
+                      icon: const Icon(Icons.copy),
+                      label: const Text('Copy Address'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => HistoryScreen(address: widget.wallet.address),
+                  ),
+                );
+              },
+              child: const Text('View History'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _showExportKeysDialog,
+              child: const Text('Export Keys'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
