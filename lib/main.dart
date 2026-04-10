@@ -15,9 +15,11 @@ class NnsWalletApp extends StatelessWidget {
   const NnsWalletApp({super.key});
 
   Widget build(BuildContext context) {
-    const slmBgTop = Color(0xFF255479);
-    const slmBgBottom = Color(0xFFB9DBCB);
+    const slmBgTop = Color(0xFF2A5479);
+    const slmBgBottom = Color(0xFF2A5479);
     const slmCardBg = Color(0xDB081928);
+    const slmCardShadow = Color(0xA6000000);
+    const slmOverlayGlow = Color(0xFF2F557D);
     const slmBorder = Color(0x14FFFFFF);
     const slmTextMain = Color(0xFFF5F7FA);
     const slmTextMuted = Color(0xFFCFD8DC);
@@ -31,8 +33,8 @@ class NnsWalletApp extends StatelessWidget {
       secondary: slmAccentSoft,
       surface: slmCardBg,
       error: slmDanger,
-      onPrimary: const Color(0xFF2B2B2B),
-      onSecondary: const Color(0xFF2B2B2B),
+      onPrimary: const Color(0x255479),
+      onSecondary: const Color(0xb9dbcb),
       onSurface: slmTextMain,
       onError: Colors.black,
     );
@@ -86,12 +88,13 @@ class NnsWalletApp extends StatelessWidget {
           cardTheme: CardThemeData(
             color: slmCardBg,
             elevation: 0,
-            shadowColor: Colors.black,
+            shadowColor: slmCardShadow,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
               side: const BorderSide(color: slmBorder),
             ),
             margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
           ),
           snackBarTheme: SnackBarThemeData(
             backgroundColor: slmCardBg,
@@ -111,23 +114,23 @@ class NnsWalletApp extends StatelessWidget {
             suffixIconColor: slmTextMuted,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Color(0x29FFFFFF)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Color(0x29FFFFFF)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: slmAccent),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: slmDanger),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: slmDanger),
             ),
           ),
@@ -141,7 +144,7 @@ class NnsWalletApp extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               textStyle: const TextStyle(fontWeight: FontWeight.w700),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
@@ -152,7 +155,7 @@ class NnsWalletApp extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               textStyle: const TextStyle(fontWeight: FontWeight.w600),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
@@ -181,41 +184,19 @@ class NnsWalletApp extends StatelessWidget {
         builder: (context, child) {
           return DecoratedBox(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [slmBgTop, slmBgBottom],
-              ),
+              color: slmBgTop,
             ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: const Alignment(-1, -1),
-                        radius: 1.1,
-                        colors: [
-                          const Color(0xFF3A5479),
-                          slmBgTop.withValues(alpha: 0.0),
-                        ],
-                        stops: const [0.0, 0.7],
-                      ),
-                    ),
+            child: SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1280),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                    child: child ?? const SizedBox.shrink(),
                   ),
                 ),
-                SafeArea(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1100),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                        child: child ?? const SizedBox.shrink(),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         },

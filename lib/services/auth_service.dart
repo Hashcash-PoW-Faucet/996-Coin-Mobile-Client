@@ -58,9 +58,8 @@ class AuthService {
   Future<bool> canUseBiometrics() async {
     final auth = LocalAuthentication();
     try {
-      final canCheck = await auth.canCheckBiometrics;
-      final isSupported = await auth.isDeviceSupported();
-      return canCheck || isSupported;
+      final available = await auth.getAvailableBiometrics();
+      return available.isNotEmpty;
     } catch (_) {
       return false;
     }
@@ -74,7 +73,7 @@ class AuthService {
       return await auth.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
-          biometricOnly: false,
+          biometricOnly: true,
           stickyAuth: true,
         ),
       );
