@@ -1,6 +1,8 @@
 // =========================
 // lib/screens/wallet_screen.dart
 // =========================
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -27,6 +29,8 @@ class _WalletScreenState extends State<WalletScreen> {
   bool _loading = true;
   String? _error;
   double _balance = 0.0;
+  double? _nnsUsdPrice;
+  String? _priceError;
 
   @override
   void initState() {
@@ -34,10 +38,37 @@ class _WalletScreenState extends State<WalletScreen> {
     _refresh();
   }
 
+  Future<double> _fetchNnsUsdPrice() async {
+    final bundle = NetworkAssetBundle(Uri.parse('https://api.coinpaprika.com/'));
+    final raw = await bundle.loadString('v1/tickers/nns-996-coin');
+    final data = jsonDecode(raw) as Map<String, dynamic>;
+    final quotes = data['quotes'] as Map<String, dynamic>?;
+    final usd = quotes?['USD'] as Map<String, dynamic>?;
+    final price = usd?['price'];
+    if (price is num) {
+      return price.toDouble();
+    }
+    throw Exception('Missing Coinpaprika USD price.');
+  }
+
+  String _formatUsdtApprox(double value) {
+    if (value >= 1000) {
+      return value.toStringAsFixed(2);
+    }
+    if (value >= 1) {
+      return value.toStringAsFixed(3);
+    }
+    if (value >= 0.01) {
+      return value.toStringAsFixed(4);
+    }
+    return value.toStringAsFixed(6);
+  }
+
   Future<void> _refresh() async {
     setState(() {
       _loading = true;
       _error = null;
+      _priceError = null;
     });
 
     try {
@@ -45,7 +76,6 @@ class _WalletScreenState extends State<WalletScreen> {
       if (!mounted) return;
       setState(() {
         _balance = balance;
-        _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -53,7 +83,27 @@ class _WalletScreenState extends State<WalletScreen> {
         _error = e.toString();
         _loading = false;
       });
+      return;
     }
+
+    try {
+      final nnsUsdPrice = await _fetchNnsUsdPrice();
+      if (!mounted) return;
+      setState(() {
+        _nnsUsdPrice = nnsUsdPrice;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _nnsUsdPrice = null;
+        _priceError = 'Price data is currently unavailable.';
+      });
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+    });
   }
 
   Future<void> _copyAddress() async {
@@ -251,13 +301,34 @@ class _WalletScreenState extends State<WalletScreen> {
                     if (_loading)
                       const CircularProgressIndicator()
                     else
-                      Text(
-                        'Balance: $_balance NNS',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Balance: $_balance NNS',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          if (_nnsUsdPrice != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              '≈ ${_formatUsdtApprox(_balance * _nnsUsdPrice!)} USDT',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '1 NNS ≈ ${_formatUsdtApprox(_nnsUsdPrice!)} USDT',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ],
                       ),
                     if (_error != null) ...[
                       const SizedBox(height: 8),
                       Text(_error!, style: const TextStyle(color: Colors.red)),
+                    ],
+                    if (_priceError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(_priceError!, style: const TextStyle(color: Colors.orange)),
                     ],
                     const SizedBox(height: 16),
                     SizedBox(

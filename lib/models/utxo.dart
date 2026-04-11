@@ -10,6 +10,8 @@ class Utxo {
   final int? blockHeight;
   final int? confirmations;
 
+  int get valueSats => (amount * 100000000).round();
+
   const Utxo({
     required this.txid,
     required this.vout,

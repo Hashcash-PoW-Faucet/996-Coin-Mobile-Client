@@ -192,7 +192,7 @@ class NnsWalletApp extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1280),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                    padding: const EdgeInsets.fromLTRB(12, 20, 12, 32),
                     child: child ?? const SizedBox.shrink(),
                   ),
                 ),
