@@ -118,7 +118,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           return Card(
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: deltaColor.withValues(alpha: 0R.14),
+                                backgroundColor: deltaColor.withValues(alpha: 0.14),
                                 child: Icon(
                                   isOutgoing ? Icons.arrow_upward : Icons.arrow_downward,
                                   color: deltaColor,
