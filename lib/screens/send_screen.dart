@@ -563,7 +563,7 @@ class _SendScreenState extends State<SendScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loading ? null : _buildPreview,
-              child: const Text('Review Transaction'),
+              child: const Text('Review and Confirm Transaction'),
             ),
             const SizedBox(height: 12),
             if (_loading) const Center(child: CircularProgressIndicator()),
@@ -587,7 +587,7 @@ class _SendScreenState extends State<SendScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Review Transaction',
+                        'Review and Confirm Transaction',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 12),

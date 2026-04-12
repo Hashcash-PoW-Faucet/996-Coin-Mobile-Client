@@ -265,6 +265,17 @@ class _WalletScreenState extends State<WalletScreen> {
         title: const Text('996-Coin Light Wallet'),
         actions: [
           IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const WalletInfoScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.info_outline),
+            tooltip: '996-Coin info',
+          ),
+          IconButton(
             onPressed: _refresh,
             icon: const Icon(Icons.refresh),
           ),
@@ -386,6 +397,177 @@ class _WalletScreenState extends State<WalletScreen> {
             ElevatedButton(
               onPressed: _showExportKeysDialog,
               child: const Text('Export Keys'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class WalletInfoScreen extends StatelessWidget {
+  const WalletInfoScreen({super.key});
+
+  static Future<void> _copyLink(BuildContext context, String label, String url) async {
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label link copied to clipboard.')),
+    );
+  }
+
+  static Widget _brandBadge({
+    required String label,
+    required Color background,
+    required Color foreground,
+  }) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: foreground,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
+  static Widget _linkTile(
+    BuildContext context, {
+    required Widget badge,
+    required String title,
+    required String subtitle,
+    required String url,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _copyLink(context, title, url),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              badge,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.open_in_new, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('996-Coin Info')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '996-Coin Links',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Tap any entry to copy the link.',
+                    ),
+                    const SizedBox(height: 16),
+                    _linkTile(
+                      context,
+                      badge: _brandBadge(
+                        label: '996',
+                        background: const Color(0xFFF4D247),
+                        foreground: const Color(0xFF1F2430),
+                      ),
+                      title: 'Homepage',
+                      subtitle: '996coin.com',
+                      url: 'https://996coin.com/',
+                    ),
+                    const SizedBox(height: 10),
+                    _linkTile(
+                      context,
+                      badge: _brandBadge(
+                        label: 'EX',
+                        background: const Color(0xFF255479),
+                        foreground: Colors.white,
+                      ),
+                      title: 'Explorer',
+                      subtitle: 'explorer.996coin.com',
+                      url: 'https://explorer.996coin.com/',
+                    ),
+                    const SizedBox(height: 10),
+                    _linkTile(
+                      context,
+                      badge: _brandBadge(
+                        label: 'D',
+                        background: const Color(0xFF5865F2),
+                        foreground: Colors.white,
+                      ),
+                      title: 'Discord',
+                      subtitle: 'discord.gg/GPaD4DhKn7',
+                      url: 'https://discord.gg/GPaD4DhKn7',
+                    ),
+                    const SizedBox(height: 10),
+                    _linkTile(
+                      context,
+                      badge: _brandBadge(
+                        label: 'KX',
+                        background: const Color(0xFF111827),
+                        foreground: const Color(0xFFE5E7EB),
+                      ),
+                      title: 'KlingEx',
+                      subtitle: 'NNS / USDT',
+                      url: 'https://klingex.io/trade/NNS-USDT',
+                    ),
+                    const SizedBox(height: 10),
+                    _linkTile(
+                      context,
+                      badge: _brandBadge(
+                        label: 'CX',
+                        background: const Color(0xFF0F766E),
+                        foreground: Colors.white,
+                      ),
+                      title: 'Cexius',
+                      subtitle: 'NNS / USDT',
+                      url: 'https://cexius.com/trade/NNS-USDT',
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
