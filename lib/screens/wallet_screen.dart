@@ -8,7 +8,9 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/wallet_info.dart';
+import '../models/wallet_backup_payload.dart';
 import '../services/api_service.dart';
+import '../services/wallet_backup_service.dart';
 import '../services/secure_wallet_store.dart';
 import 'history_screen.dart';
 import 'send_screen.dart';
@@ -25,6 +27,7 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> {
   final _api = const ApiService();
   final _store = SecureWalletStore();
+  final _backupService = WalletBackupService();
 
   bool _loading = true;
   String? _error;
@@ -219,6 +222,306 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
+  Future<String?> _promptForBackupPassword({
+    required String title,
+    required String actionLabel,
+    bool confirm = false,
+  }) async {
+    final passwordController = TextEditingController();
+    final confirmController = TextEditingController();
+    String? localError;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            return AlertDialog(
+              title: Text(title),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        textInputAction: confirm ? TextInputAction.next : TextInputAction.done,
+                        decoration: const InputDecoration(
+                          labelText: 'Backup password',
+                        ),
+                      ),
+                      if (confirm) ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: confirmController,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          decoration: const InputDecoration(
+                            labelText: 'Repeat backup password',
+                          ),
+                        ),
+                      ],
+                      if (localError != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          localError!,
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final password = passwordController.text.trim();
+                    final repeated = confirmController.text.trim();
+
+                    if (password.isEmpty) {
+                      setLocalState(() {
+                        localError = 'Please enter a backup password.';
+                      });
+                      return;
+                    }
+                    if (confirm && password != repeated) {
+                      setLocalState(() {
+                        localError = 'The backup passwords do not match.';
+                      });
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop(password);
+                  },
+                  child: Text(actionLabel),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    return result;
+  }
+
+  Future<void> _showEncryptedBackupExportDialog(String backupJson) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Encrypted Backup Ready'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Copy and save this encrypted backup text in a safe place. You can later restore it with the backup password.',
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: SelectableText(backupJson),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: backupJson));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Encrypted backup copied to clipboard.'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.copy_outlined),
+              label: const Text('Copy Backup'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showCreateEncryptedBackupPlannedDialog() async {
+    try {
+      final password = await _promptForBackupPassword(
+        title: 'Create Encrypted Backup',
+        actionLabel: 'Create',
+        confirm: true,
+      );
+      if (password == null || password.isEmpty) {
+        return;
+      }
+
+      final payload = WalletBackupPayload(
+        version: WalletBackupService.currentVersion,
+        coin: '996-Coin',
+        symbol: 'NNS',
+        address: widget.wallet.address,
+        wif: widget.wallet.wif,
+        privateKeyHex: widget.wallet.privateKeyHex,
+        publicKeyHex: widget.wallet.publicKeyHex,
+        createdAt: DateTime.now().toUtc().toIso8601String(),
+      );
+
+      final backupJson = _backupService.createEncryptedBackupJson(
+        payload: payload,
+        password: password,
+      );
+
+      if (!mounted) return;
+      await _showEncryptedBackupExportDialog(backupJson);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Future<void> _showImportEncryptedBackupPlannedDialog() async {
+    final backupController = TextEditingController();
+    final passwordController = TextEditingController();
+    String? localError;
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            return AlertDialog(
+              title: const Text('Import Encrypted Backup'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Paste the encrypted backup text and enter the backup password to restore the wallet.',
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: backupController,
+                      minLines: 6,
+                      maxLines: 10,
+                      decoration: const InputDecoration(
+                        labelText: 'Encrypted backup text',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Backup password',
+                      ),
+                    ),
+                    if (localError != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        localError!,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final backupText = backupController.text.trim();
+                    final password = passwordController.text.trim();
+
+                    if (backupText.isEmpty) {
+                      setLocalState(() {
+                        localError = 'Please paste the encrypted backup text.';
+                      });
+                      return;
+                    }
+                    if (password.isEmpty) {
+                      setLocalState(() {
+                        localError = 'Please enter the backup password.';
+                      });
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop({
+                      'backup': backupText,
+                      'password': password,
+                    });
+                  },
+                  child: const Text('Restore'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    try {
+      final payload = _backupService.decryptBackupJson(
+        encryptedBackupJson: result['backup']!,
+        password: result['password']!,
+      );
+
+      final restoredWallet = WalletInfo(
+        address: payload.address,
+        wif: payload.wif,
+        privateKeyHex: payload.privateKeyHex,
+        publicKeyHex: payload.publicKeyHex,
+      );
+
+      await _store.saveWallet(restoredWallet);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Encrypted wallet backup restored successfully.'),
+        ),
+      );
+
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => WalletScreen(wallet: restoredWallet),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
   Future<void> _confirmAndDeleteWallet() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -397,6 +700,37 @@ class _WalletScreenState extends State<WalletScreen> {
             ElevatedButton(
               onPressed: _showExportKeysDialog,
               child: const Text('Export Keys'),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Encrypted Wallet Backup',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Create a password-protected wallet backup file for safer export and later restore.',
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _showCreateEncryptedBackupPlannedDialog,
+                      icon: const Icon(Icons.lock_outline),
+                      label: const Text('Create Encrypted Backup'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _showImportEncryptedBackupPlannedDialog,
+                      icon: const Icon(Icons.upload_file_outlined),
+                      label: const Text('Import Encrypted Backup'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

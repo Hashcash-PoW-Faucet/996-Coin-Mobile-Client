@@ -1,0 +1,1 @@
+Mobile Light Wallet for 996-Coin with local signing
