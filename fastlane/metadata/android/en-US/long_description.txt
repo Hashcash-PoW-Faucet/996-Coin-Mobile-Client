@@ -1,0 +1,27 @@
+
+
+996-Coin Mobile Wallet is a light wallet for 996-Coin (NNS), built with Flutter.
+
+The wallet is designed for everyday community use and keeps private keys on the device. Transactions are created and signed locally in the app. The wallet then uses the public explorer API for blockchain-related tasks such as balance lookups, UTXO retrieval, transaction history, mempool testing, and broadcasting signed transactions.
+
+Features:
+
+- Create a new wallet locally on your device
+- Import an existing wallet
+- Store wallet data locally
+- PIN protection and optional biometric unlock
+- Show address, balance, and transaction history
+- Show a receive QR code
+- Build, sign, test, and broadcast transactions locally
+- Address book for saved recipient addresses
+- QR scanning for recipient addresses on supported mobile devices
+- Encrypted wallet backup export and restore
+
+Security and privacy notes:
+
+- Private keys stay on the device
+- Transaction signing happens locally in the wallet
+- The app is a light wallet, not a full node
+- The explorer API is used only for blockchain-related lookups and transaction broadcast
+
+This wallet is intended to provide a simple mobile experience for the 996-Coin community while keeping key handling local and transparent.

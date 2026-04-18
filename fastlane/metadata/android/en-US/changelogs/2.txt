@@ -1,0 +1,4 @@
+- Refined the app style to better match the 996-Coin webpage design
+- Added biometric login support
+- Improved the send flow
+- Improved transaction history

@@ -1,0 +1,9 @@
+- Wallet creation and import
+- Local key handling
+- PIN / biometric protection
+- Balance and history view
+- QR receive support
+- Sending with local signing
+- Mempool check before broadcast
+- Address book
+- QR recipient scan on supported mobile devices
