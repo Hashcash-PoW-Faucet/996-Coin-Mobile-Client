@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nns_light_wallet"
+    namespace = "io.github.hashcashpowfaucet.nnslightwallet"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.nns_light_wallet"
+        applicationId = "io.github.hashcashpowfaucet.nnslightwallet"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
