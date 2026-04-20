@@ -13,6 +13,7 @@ A Flutter-based light wallet for 996-Coin (NNS).
 - Build, sign, test, and broadcast transactions locally
 - Address book for saved recipient addresses
 - QR scanning for recipient addresses on supported mobile devices
+- Encrypted wallet backup export and restore
 
 ## Project Status
 
