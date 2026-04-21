@@ -3,7 +3,7 @@ name: nns_light_wallet
 description: A minimal Flutter light wallet for 996-Coin / NNS.
 publish_to: 'none'
 
-version: 1.1.1+4
+version: 1.1.2+5
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
