@@ -1,4 +1,4 @@
-package com.example.nns_light_wallet
+package io.github.hashcashpowfaucet.nnslightwallet
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
