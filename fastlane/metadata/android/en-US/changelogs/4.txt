@@ -1,0 +1,5 @@
+- fix content and location of MainActivity.kt
+- update build.gradle.kts
+- Update README.md
+- update applicationId
+- Add F-Droid fastlane metadata
