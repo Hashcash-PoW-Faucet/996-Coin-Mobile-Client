@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'dart:io';
+import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 
 import '../models/unsigned_transaction_preview.dart';
 import '../models/wallet_info.dart';
@@ -226,8 +227,6 @@ class _SendScreenState extends State<SendScreen> {
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
-
-
   String _friendlyErrorMessage(Object error) {
     final raw = error.toString().replaceFirst('Exception: ', '').trim();
     final lower = raw.toLowerCase();
@@ -692,19 +691,37 @@ class _QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<_QrScannerScreen> {
+  final GlobalKey _qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? _controller;
   bool _handled = false;
 
-  void _handleBarcode(BarcodeCapture capture) {
-    if (_handled) return;
-
-    for (final barcode in capture.barcodes) {
-      final rawValue = barcode.rawValue?.trim();
-      if (rawValue != null && rawValue.isNotEmpty) {
-        _handled = true;
-        Navigator.of(context).pop(rawValue);
-        return;
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (_controller != null) {
+      if (!kIsWeb && Platform.isAndroid) {
+        _controller!.pauseCamera();
       }
+      _controller!.resumeCamera();
     }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  void _onQrViewCreated(QRViewController controller) {
+    _controller = controller;
+    _controller!.scannedDataStream.listen((scanData) {
+      if (_handled) return;
+      final code = scanData.code?.trim();
+      if (code == null || code.isEmpty) return;
+      _handled = true;
+      _controller?.pauseCamera();
+      Navigator.of(context).pop(code);
+    });
   }
 
   @override
@@ -713,8 +730,9 @@ class _QrScannerScreenState extends State<_QrScannerScreen> {
       appBar: AppBar(title: const Text('Scan Recipient QR')),
       body: Stack(
         children: [
-          MobileScanner(
-            onDetect: _handleBarcode,
+          QRView(
+            key: _qrKey,
+            onQRViewCreated: _onQrViewCreated,
           ),
           Align(
             alignment: Alignment.bottomCenter,
